@@ -1,0 +1,112 @@
+Strings
+
+# Track how many times a movie was watched
+SET watches:inception 0
+SET watches:interstellar 0
+SET watches:dune 0
+
+INCR watches:inception
+INCR watches:inception
+INCR watches:interstellar
+
+GET watches:inception       # → 2
+GET watches:interstellar    # → 1
+
+
+
+List
+
+# Queue up movies to watch (RPUSH = add to end of queue)
+RPUSH watchlist "Oppenheimer"
+RPUSH watchlist "Arrival"
+RPUSH watchlist "Blade Runner 2049"
+RPUSH watchlist "Ex Machina"
+
+# See the full queue
+LRANGE watchlist 0 -1
+
+# Watch the next movie (pop from front)
+LPOP watchlist       # → Oppenheimer
+
+# Add an urgent one to the front
+LPUSH watchlist "2001: A Space Odyssey"
+
+LRANGE watchlist 0 -1
+LLEN watchlist
+
+
+Hash
+
+# Store full movie details under one key
+HSET movie:inception title "Inception" year 2010 director "Nolan" rating 8.8 genre "Sci-Fi"
+HSET movie:dune title "Dune" year 2021 director "Villeneuve" rating 8.0 genre "Sci-Fi"
+
+# Get specific field
+HGET movie:inception director
+
+# Get multiple fields
+HMGET movie:inception title year rating
+
+# Get everything
+HGETALL movie:dune
+
+# Update rating
+HSET movie:inception rating 9.0
+HGET movie:inception rating
+
+# Check if field exists
+HEXISTS movie:inception budget   # → 0 (doesn't exist)
+
+
+Set
+
+# Tag movies with genres
+SADD genre:scifi "Inception" "Dune" "Arrival" "Blade Runner 2049"
+SADD genre:thriller "Inception" "Ex Machina" "Parasite"
+SADD genre:drama "Parasite" "Arrival"
+
+# All sci-fi movies
+SMEMBERS genre:scifi
+
+# Is Dune a thriller?
+SISMEMBER genre:thriller "Dune"     # → 0
+
+# Sci-fi AND thriller (both tags)
+SINTER genre:scifi genre:thriller   # → Inception
+
+# Sci-fi OR drama
+SUNION genre:scifi genre:drama
+
+# Sci-fi but NOT thriller
+SDIFF genre:scifi genre:thriller
+
+SCARD genre:scifi   # count
+
+Sorted Set
+
+# Add movies with their ratings as score
+ZADD top:movies 8.8 "Inception"
+ZADD top:movies 8.5 "Interstellar"
+ZADD top:movies 8.0 "Dune"
+ZADD top:movies 9.2 "Parasite"
+ZADD top:movies 7.9 "Ex Machina"
+
+# Top movies (highest rated first)
+ZREVRANGE top:movies 0 -1 WITHSCORES
+
+# Bottom to top
+ZRANGE top:movies 0 -1 WITHSCORES
+
+# Rank of Inception (0-indexed, low→high)
+ZRANK top:movies "Inception"
+
+# Rank highest → lowest
+ZREVRANK top:movies "Inception"
+
+# Bump Dune's rating
+ZINCRBY top:movies 0.5 "Dune"
+
+# Only movies rated 8.5 and above
+ZRANGEBYSCORE top:movies 8.5 +inf WITHSCORES
+
+ZCARD top:movies
