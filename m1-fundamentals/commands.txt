@@ -1,0 +1,36 @@
+# 1. Set a bookmark
+SET bookmark:1 "https://redis.io/docs"
+SET bookmark:2 "https://roadmap.sh/redis"
+SET bookmark:3 "https://github.com"
+
+# 2. Get a bookmark
+GET bookmark:1
+
+# 3. Check if a key exists
+EXISTS bookmark:2
+
+# 4. See all bookmark keys
+KEYS bookmark:*
+
+# 5. Count your bookmarks
+# (We'll use a counter key — a common Redis pattern)
+SET bookmark:count 3
+INCR bookmark:count       # → 4
+DECR bookmark:count       # → 3
+
+# 6. Add metadata to a bookmark
+SET bookmark:1:title "Redis Docs"
+SET bookmark:1:tags "redis,learning"
+
+# 7. Delete a bookmark
+DEL bookmark:3
+KEYS bookmark:*           # bookmark:3 gone
+
+# 8. Rename a key
+RENAME bookmark:1 bookmark:redis-official
+
+# 9. Check the type of a key
+TYPE bookmark:redis-official   # → string
+
+# 10. Flush everything (clean slate)
+FLUSHDB
