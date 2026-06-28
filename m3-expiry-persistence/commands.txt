@@ -1,0 +1,99 @@
+Part 1 — OTP System
+bash# User requests OTP for their email
+SET otp:roshan@email.com 482910 EX 120
+# → Stored for 120 seconds (2 minutes)
+
+# Check how long it's valid
+TTL otp:roshan@email.com       # → 120 (decreasing)
+
+# Simulate waiting a bit, check again
+TTL otp:roshan@email.com       # → some lower number
+
+# User submits OTP — verify it
+GET otp:roshan@email.com       # → 482910 (matches? ✅)
+
+# Consume it immediately after verify (one-time use)
+DEL otp:roshan@email.com
+
+# Try to get it again — it's gone
+GET otp:roshan@email.com       # → nil
+
+# Simulate expired OTP
+SET otp:test@email.com 999001 EX 5
+TTL otp:test@email.com         # → 5
+# wait 6 seconds...
+TTL otp:test@email.com         # → -2 (key gone)
+GET otp:test@email.com         # → nil
+
+
+
+Part 2 — Session Store
+bash# User logs in — create session with 30min expiry
+SET session:user:42 "roshan" EX 1800
+
+# Check session validity (middleware does this on every request)
+GET session:user:42            # → roshan ✅
+
+TTL session:user:42            # → 1800 (or lower)
+
+# User is active — extend the session (sliding expiry)
+EXPIRE session:user:42 1800    # reset TTL back to 30 min
+
+# Store richer session data using Hash
+HSET session:user:42:data username "roshan" role "admin" last_seen "2025-01-10"
+EXPIRE session:user:42:data 1800
+
+HGETALL session:user:42:data
+
+# Update last seen on activity
+HSET session:user:42:data last_seen "2025-01-10T15:30:00"
+EXPIRE session:user:42:data 1800   # extend again
+
+# User logs out — destroy session immediately
+DEL session:user:42
+DEL session:user:42:data
+
+GET session:user:42            # → nil
+
+
+Part 3 — Observe Persistence (RDB)
+bash# If using Docker:
+docker exec -it redis-m1 redis-cli
+
+# Add some keys
+SET persist:test1 "hello"
+SET persist:test2 "world"
+
+# Trigger a manual RDB snapshot
+BGSAVE
+# → Background saving started
+
+# Check last save time
+LASTSAVE    # returns unix timestamp
+
+# Confirm RDB file exists (in Docker)
+# Open a new terminal:
+docker exec -it redis-m1 ls /data
+# → dump.rdb
+
+
+Part 4 — Keyspace Notifications
+Open two terminals.
+Terminal 1 — subscriber (listener):
+bashredis-cli
+
+# Subscribe to all expiry events
+PSUBSCRIBE __keyevent@0__:expired
+Terminal 2 — set a key with short TTL:
+bashredis-cli
+
+# First enable notifications
+CONFIG SET notify-keyspace-events KEA
+
+# Set a key that will expire in 5 seconds
+SET notify:test "watch me expire" EX 5
+Back in Terminal 1 — after 5 seconds you'll see:
+1) "pmessage"
+2) "__keyevent@0__:expired"
+3) "__keyevent@0__:expired"
+4) "notify:test"     ← the key that just expired
