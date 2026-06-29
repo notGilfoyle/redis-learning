@@ -15,3 +15,6 @@
 
 ## Run it
 Open redis-cli and paste commands from `commands.txt`
+
+
+## Commit stat padding
